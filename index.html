@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Key Generator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --danger: #ef4444;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: radial-gradient(circle at bottom right, #1e1b4b, var(--bg-color));
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-main);
+        }
+
+        .generator-card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        .output-container {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .output-field {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 16px;
+            outline: none;
+            letter-spacing: 1px;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--text-muted);
+            padding: 0 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        .settings {
+            margin-bottom: 24px;
+        }
+
+        .slider-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .slider-group label {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .slider-value {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input {
+            margin-right: 8px;
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3);
+        }
+
+        .generate-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.4);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="generator-card">
+        <h2>Key Generator</h2>
+        
+        <div class="output-container">
+            <input type="text" id="passwordOutput" class="output-field" readonly value="Click Generate...">
+            <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">COPY</button>
+        </div>
+
+        <div class="settings">
+            <div class="slider-group">
+                <label for="lengthSlider">Length</label>
+                <span class="slider-value" id="lengthValue">16</span>
+            </div>
+            <input type="range" id="lengthSlider" min="8" max="32" value="16" oninput="updateLength()">
+
+            <div class="checkbox-group" style="margin-top: 20px;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkUpper" checked> Uppercase
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkLower" checked> Lowercase
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkNumbers" checked> Numbers
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkSymbols" checked> Symbols
+                </label>
+            </div>
+        </div>
+
+        <button class="generate-btn" onclick="generatePassword()">Generate Password</button>
+    </div>
+
+    <script>
+        const upperChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const lowerChars = "abcdefghijklmnopqrstuvwxyz";
+        const numberChars = "0123456789";
+        const symbolChars = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
+
+        const passwordOutput = document.getElementById('passwordOutput');
+        const lengthSlider = document.getElementById('lengthSlider');
+        const lengthValue = document.getElementById('lengthValue');
+        const copyBtn = document.getElementById('copyBtn');
+
+        function updateLength() {
+            lengthValue.textContent = lengthSlider.value;
+        }
+
+        function generatePassword() {
+            const length = parseInt(lengthSlider.value);
+            const useUpper = document.getElementById('chkUpper').checked;
+            const useLower = document.getElementById('chkLower').checked;
+            const useNumbers = document.getElementById('chkNumbers').checked;
+            const useSymbols = document.getElementById('chkSymbols').checked;
+
+            if (!useUpper && !useLower && !useNumbers && !useSymbols) {
+                passwordOutput.value = "Select at least one option!";
+                passwordOutput.style.color = "var(--danger)";
+                return;
+            }
+
+            let charPool = "";
+            if (useUpper) charPool += upperChars;
+            if (useLower) charPool += lowerChars;
+            if (useNumbers) charPool += numberChars;
+            if (useSymbols) charPool += symbolChars;
+
+            let generatedPassword = "";
+            
+            // Generate random characters
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * charPool.length);
+                generatedPassword += charPool[randomIndex];
+            }
+
+            passwordOutput.value = generatedPassword;
+            passwordOutput.style.color = "var(--accent)";
+            copyBtn.textContent = "COPY";
+        }
+
+        function copyToClipboard() {
+            const textToCopy = passwordOutput.value;
+            if (textToCopy === "Click Generate..." || textToCopy.includes("Select at least")) return;
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                copyBtn.textContent = "COPIED!";
+                setTimeout(() => {
+                    copyBtn.textContent = "COPY";
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Generate one on load
+        window.onload = generatePassword;
+    </script>
+</body>
+</html>
